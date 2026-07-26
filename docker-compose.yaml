@@ -8,3 +8,14 @@ services:
       - POSTGRES_PASSWORD=password
       - POSTGRES_USER=nattaphong
       - POSTGRES_DB=nattaphong
+
+  admin:
+    image: dpage/pgadmin4
+    container_name: 69-s3-pgadmin
+    depends_on:
+      - db
+    ports:
+      - "8080:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=nattaphong-ru@rmutp.ac.th
+      - PGADMIN_DEFAULT_PASSWORD=1Liverpool98
