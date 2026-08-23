@@ -2,7 +2,7 @@
 
 ## Login
 
-POST http://localhost:9093/admin/login
+POST http://localhost:8080/admin/login
 Content-Type: application/json
 
 {
@@ -13,7 +13,7 @@ Content-Type: application/json
 
 ### Login (User)
 
-POST http://localhost:9093/api/auth/local
+POST http://localhost:8080/api/auth/local
 Content-Type: application/json
 
 {
@@ -23,7 +23,7 @@ Content-Type: application/json
 
 ### Signup
 
-POST http://localhost:9093/api/auth/local/register
+POST http://localhost:8080/api/auth/local/register
 Content-Type: application/json
 
 {
@@ -34,7 +34,7 @@ Content-Type: application/json
 
 ## Forgot Password
 
-POST http://localhost:9093/api/auth/forgot-password
+POST http://localhost:8080/api/auth/forgot-password
 Content-Type: application/json
 
 {
@@ -43,5 +43,5 @@ Content-Type: application/json
 
 ## Profile
 
-GET http://localhost:9093/api/users/me
+GET http://localhost:8080/api/users/me
 Authorization: Bearer {{TOKEN}}
