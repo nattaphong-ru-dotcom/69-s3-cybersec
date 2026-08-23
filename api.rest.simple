@@ -34,4 +34,14 @@ Content-Type: application/json
 
 ## Forgot Password
 
+POST http://localhost:9093/api/auth/forgot-password
+Content-Type: application/json
+
+{
+    "email": ""
+}
+
 ## Profile
+
+GET http://localhost:9093/api/users/me
+Authorization: Bearer {{TOKEN}}
