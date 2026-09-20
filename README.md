@@ -1,6 +1,8 @@
-# Cyber Security
+cyber sucurity
 
-# My information
-- Nattaphong ruangurai
-- student id 0568604056xxx
-- My Expectation is to gain practical cybersecurity knowledge and skills
+My information
+
+nattaphong ruangurai
+student id 0568604056xxx
+My Expectation
+my expectation is to gain practical cybersecurity knowledge and skills

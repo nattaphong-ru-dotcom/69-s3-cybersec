@@ -1,0 +1,103 @@
+# REST (Simple Template)
+# ทุก input ในคำขอใช้ค่าจาก env ({{$dotenv ...}}) เท่านั้น — ไม่มีค่า hardcode
+# ใช้งานร่วมกับ REST Client (VS Code / JetBrains) ต้องมี .env ที่ key ตรงกับ .env.simple
+
+@baseUrl = {{$dotenv BASE_URL}}
+
+## 1. Admin Section
+
+### 1.1 Login (Admin)
+# @name adminLogin
+POST {{baseUrl}}/admin/login
+Content-Type: application/json
+
+{
+    "email": "{{$dotenv ADMIN_EMAIL}}",
+    "password": "{{$dotenv ADMIN_PASSWORD}}"
+}
+
+###
+@adminToken = {{adminLogin.response.body.data.token}}
+
+### 1.2 Register (Admin)
+POST {{baseUrl}}/admin/register-admin
+Content-Type: application/json
+
+{
+    "email": "{{$dotenv ADMIN_EMAIL}}",
+    "password": "{{$dotenv ADMIN_PASSWORD}}"
+}
+
+### 1.3 Forgot Password (Admin)
+POST {{baseUrl}}/admin/forgot-password
+Content-Type: application/json
+
+{
+    "email": "{{$dotenv ADMIN_EMAIL}}"
+}
+
+###
+@adminResetToken = {{$dotenv ADMIN_RESET_TOKEN}}
+
+### 1.4 Reset Password (Admin)
+POST {{baseUrl}}/admin/reset-password
+Content-Type: application/json
+
+{
+    "resetPasswordToken": "{{adminResetToken}}",
+    "password": "{{$dotenv ADMIN_NEW_PASSWORD}}"
+}
+
+### 1.5 Profile (Admin)
+GET {{baseUrl}}/admin/users/me
+Authorization: Bearer {{adminToken}}
+
+## 2. User Section
+
+### 2.1 Login (User)
+# @name userLogin
+POST {{baseUrl}}/api/auth/local
+Content-Type: application/json
+
+{
+    "identifier": "{{$dotenv USER_EMAIL}}",
+    "password": "{{$dotenv USER_PASSWORD}}"
+}
+
+###
+@userToken = {{userLogin.response.body.jwt}}
+
+### 2.2 Register (User)
+POST {{baseUrl}}/api/auth/local/register
+Content-Type: application/json
+
+{
+    "username": "{{$dotenv USER_NAME}}",
+    "email": "{{$dotenv USER_EMAIL}}",
+    "password": "{{$dotenv USER_PASSWORD}}"
+}
+
+### 2.3 Forgot Password (User)
+POST {{baseUrl}}/api/auth/forgot-password
+Content-Type: application/json
+
+{
+    "email": "{{$dotenv USER_EMAIL}}"
+}
+
+###
+@userResetToken = {{$dotenv USER_RESET_TOKEN}}
+
+### 2.4 Reset Password (User)
+POST {{baseUrl}}/api/auth/reset-password
+Content-Type: application/json
+
+{
+    "code": "{{userResetToken}}",
+    "password": "{{$dotenv USER_NEW_PASSWORD}}",
+    "passwordConfirmation": "{{$dotenv USER_NEW_PASSWORD}}"
+}
+
+### 2.5 Profile (User)
+GET {{baseUrl}}/api/users/me
+Authorization: Bearer {{userToken}}

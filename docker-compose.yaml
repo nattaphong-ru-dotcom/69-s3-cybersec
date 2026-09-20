@@ -3,19 +3,57 @@ services:
     image: postgres:16-alpine
     container_name: 69-s3-db
     ports:
-      - "5432:5432"
+      - "127.0.0.1:54327:5432"
     environment:
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_USER=nattaphong
-      - POSTGRES_DB=nattaphong
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_DB=${DATABASE_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
 
   admin:
     image: dpage/pgadmin4
-    container_name: 69-s3-pgadmin
+    container_name: 69-s3-admin
+    ports:
+      - "127.0.0.1:8083:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
     depends_on:
       - db
+    restart: unless-stopped
+
+  app:
+    image: prawee/strapi
+    container_name: my_app
     ports:
-      - "8080:80"
+      - "127.0.0.1:8080:1337"
     environment:
-      - PGADMIN_DEFAULT_EMAIL=nattaphong-ru@rmutp.ac.th
-      - PGADMIN_DEFAULT_PASSWORD=1Liverpool98
+      - DATABASE_CLIENT=${DATABASE_CLIENT:-postgres}
+      - DATABASE_NAME=${DATABASE_DB}
+      - DATABASE_HOST=db
+      - DATABASE_PORT=5432
+      - DATABASE_USERNAME=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  admin-init:
+    image: docker.io/curlimages/curl:latest
+    container_name: 69-s3-admin-init
+    depends_on:
+      - app
+    environment:
+      - STRAPI_URL=http://app:1337
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - AUTO_CREATE_ADMIN=${AUTO_CREATE_ADMIN:-false}
+    volumes:
+      - ./scripts/ensure-admin.sh:/ensure-admin.sh:ro
+    entrypoint: ["/bin/sh", "/ensure-admin.sh"]
+    restart: "no"
+
+volumes:
+  postgres_data:
