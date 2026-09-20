@@ -40,5 +40,20 @@ services:
       - db
     restart: unless-stopped
 
+  admin-init:
+    image: docker.io/curlimages/curl:latest
+    container_name: 69-s3-admin-init
+    depends_on:
+      - app
+    environment:
+      - STRAPI_URL=http://app:1337
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - AUTO_CREATE_ADMIN=${AUTO_CREATE_ADMIN:-false}
+    volumes:
+      - ./scripts/ensure-admin.sh:/ensure-admin.sh:ro
+    entrypoint: ["/bin/sh", "/ensure-admin.sh"]
+    restart: "no"
+
 volumes:
   postgres_data:
