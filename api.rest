@@ -1,20 +1,61 @@
 # REST
+# REV 4 - ทุกตัวแปรอ่านจาก .env ยิง request ไหนก็ได้โดยเดี่ยว
+# ถ้าคุณไม่เห็นบรรทัด "REV 4" ที่นี่ แปลว่าเปิดไฟล์เวอร์ชันเก่าอยู่
+# ให้ปิดแท็บนี้ (Ctrl+W) แล้วเปิดใหม่ หรือรัน Developer: Reload Window
 
 @baseUrl = {{$dotenv BASE_URL}}
 
 @adminEmail = {{$dotenv ADMIN_EMAIL}}
 @adminPassword = {{$dotenv ADMIN_PASSWORD}}
 @adminNewPassword = {{$dotenv ADMIN_NEW_PASSWORD}}
+@adminFirstName = {{$dotenv ADMIN_FIRSTNAME}}
+@adminLastName = {{$dotenv ADMIN_LASTNAME}}
 
 @userName = {{$dotenv USER_NAME}}
 @userEmail = {{$dotenv USER_EMAIL}}
 @userPassword = {{$dotenv USER_PASSWORD}}
 @userNewPassword = {{$dotenv USER_NEW_PASSWORD}}
 
+# ทุกตัวแปรในไฟล์นี้อ่านจาก .env เท่านั้น เพื่อให้ยิง request ไหนก็ได้โดยเดี่ยว
+# โดยไม่ต้องยิง request อื่นมาก่อน
+#
+# ห้ามเปลี่ยนกลับไปใช้ request variable แบบ {{adminLogin.response.body.$.data.token}}
+# เพราะถ้า request ต้นทางยังไม่ถูกยิงใน session นั้น ตัวแปรจะไม่ถูก resolve
+# และ extension จะส่ง expression ดิบไปใน URL/header ทำให้ได้ 401 หรือ 500
+# ------------------------------------------------------------
+
+# ADMIN_TOKEN มาจาก 1.1 (คัดลอกค่า data.token) ถ้าหมดอายุจะได้ 401
+@adminToken = {{$dotenv ADMIN_TOKEN}}
+
+# USER_TOKEN มาจาก 2.1 (คัดลอกค่า jwt) ถ้าหมดอายุจะได้ 401/403
+@userToken = {{$dotenv USER_TOKEN}}
+
+@studentName = {{$dotenv STUDENT_NAME}}
+@studentNewName = {{$dotenv STUDENT_NEW_NAME}}
+
+# ------------------------------------------------------------
+# studentId — อ่านจาก .env ใช้กับ 3.1.3 / 3.1.4
+# ถ้าค่านี้ไม่ใช่ตัวเลข หรือไม่มี student id นั้นใน DB จะได้ 404
+# หลัง TRUNCATE หรือสร้าง record ใหม่ id จะเปลี่ยน -> ต้องอัปเดตค่านี้
+# ------------------------------------------------------------
+@studentId = {{$dotenv STUDENT_ID}}
+
+@subjectName = {{$dotenv SUBJECT_NAME}}
+@subjectNewName = {{$dotenv SUBJECT_NEW_NAME}}
+@subjectId = {{$dotenv SUBJECT_ID}}
+
+@teacherName = {{$dotenv TEACHER_NAME}}
+@teacherNewName = {{$dotenv TEACHER_NEW_NAME}}
+@teacherId = {{$dotenv TEACHER_ID}}
+
+@mappingId = {{$dotenv MAPPING_ID}}
+
 
 ## 1. Admin Section
 
 ### 1.1 Login (Admin)
+# ใช้ login นี้เพื่อ refresh ADMIN_TOKEN ใน .env (คัดลอกค่า data.token จาก response)
+# @adminToken อ่านจาก .env แล้ว จึงไม่ต้องกด 1.1 ก่อนยิง 1.5
 # @name adminLogin
 POST {{baseUrl}}/admin/login
 Content-Type: application/json
@@ -24,14 +65,13 @@ Content-Type: application/json
     "password": "{{adminPassword}}"
 }
 
-###
-@adminToken = {{adminLogin.response.body.data.token}}
-
 ### 1.2 Register (Admin)
 POST {{baseUrl}}/admin/register-admin
 Content-Type: application/json
 
 {
+    "firstname": "{{adminFirstName}}",
+    "lastname": "{{adminLastName}}",
     "email": "{{adminEmail}}",
     "password": "{{adminPassword}}"
 }
@@ -63,6 +103,8 @@ Authorization: Bearer {{adminToken}}
 ## 2. User Section
 
 ### 2.1 Login (User)
+# ใช้ login นี้เพื่อ refresh USER_TOKEN ใน .env (คัดลอกค่า jwt จาก response)
+# ถ้าใช้โหมด B ค่า @userToken มาจาก .env ไม่ต้องกด 2.1 ก่อนยิง section 3
 # @name userLogin
 POST {{baseUrl}}/api/auth/local
 Content-Type: application/json
@@ -71,9 +113,6 @@ Content-Type: application/json
     "identifier": "{{userEmail}}",
     "password": "{{userPassword}}"
 }
-
-###
-@userToken = {{userLogin.response.body.jwt}}
 
 ### 2.2 Register (User)
 POST {{baseUrl}}/api/auth/local/register
@@ -109,3 +148,187 @@ Content-Type: application/json
 ### 2.5 Profile (User)
 GET {{baseUrl}}/api/users/me
 Authorization: Bearer {{userToken}}
+
+
+## 3. Content Section
+# ทุกเส้นใน section 3 ใช้ {{userToken}} ซึ่งอ่านจาก USER_TOKEN ใน .env (โหมด B)
+# ยิง 3.1-3.4 ได้เลยไม่ต้องกด 2.1 ก่อน — แค่ต้องไม่ลืม refresh USER_TOKEN ทุก 30 วัน
+#
+# ถ้าได้ 401 = token หมดอายุ/ผิด -> ยิง 2.1 แล้ว copy ค่า jwt ไปวางทับ USER_TOKEN ใน .env
+# ถ้าได้ 403 = USER_TOKEN ว่างเปล่าใน .env
+#
+# ถ้าอยากกลับไปใช้โหมด A (ให้ extension ดึง token จาก 2.1 อัตโนมัติ)
+# ให้ดูวิธีสลับที่บรรทัด @userToken ด้านบนสุดของไฟล์นี้
+#
+# ห้ามประกาศ @name userLogin ซ้ำในไฟล์นี้: cache key ด้วยชื่อ request ทำให้ token สับสน
+# (api.rest กับ api.rest.simple แยก cache กัน เพราะ key ด้วย document URI)
+
+### 3.1 Student
+
+#### 3.1.1 Create (Student)
+# @name createStudent
+# mobile และ cardId เป็น unique -> ใช้ {{$randomInt}} ไม่ใช่ {{$timestamp}}
+# เพราะ 3.1.4 ก็เขียน field mobile ถ้าใช้ timestamp ตัวเดียวกันจะได้ค่าซ้ำเมื่อกดใน 1 วินาทีเดียวกัน
+#   mobile = {{$randomInt 8000000000 8999999999}}          -> 10 หลัก (ขึ้นต้น 8 คล้ายเบอร์ไทย)
+#   cardId = 11017001 + {{$randomInt 10000 99999}}         -> 13 หลัก (8+5)
+# name ไม่ unique ใช้ค่าคงที่ได้
+POST {{baseUrl}}/api/students
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+    "data": {
+        "name": "{{studentName}}",
+        "mobile": "{{$randomInt 8000000000 8999999999}}",
+        "cardId": "11017001{{$randomInt 10000 99999}}"
+    }
+}
+
+#### 3.1.2 List All (Student)
+GET {{baseUrl}}/api/students
+Authorization: Bearer {{userToken}}
+
+#### 3.1.3 List with ID (Student)
+# ต้องมี student id นี้อยู่ใน DB จริง ไม่งั้นได้ 404
+# 404 มี 2 แบบ: ไม่มี id นี้ใน DB | {{studentId}} ไม่ใช่ตัวเลข (controller กันไว้ให้ ไม่ใช่ 500)
+GET {{baseUrl}}/api/students/{{studentId}}
+Authorization: Bearer {{userToken}}
+
+#### 3.1.4 Update (Student)
+# mobile เป็น unique -> ใช้ {{$randomInt}} ไม่ใช่ {{$timestamp}}
+# ถ้าใช้ timestamp ตัวเดียวกับ 3.1.1 แล้วกดใน 1 วินาทีเดียวกัน ค่าจะซ้ำและได้ 400
+# ถ้าใช้ค่าคงที่แล้วมี student อื่นถือ mobile นั้นอยู่ ก็จะได้ 400 This attribute must be unique
+# name ไม่ unique ใช้ค่าคงที่ได้
+PUT {{baseUrl}}/api/students/{{studentId}}
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+    "data": {
+        "name": "{{studentNewName}}",
+        "mobile": "{{$randomInt 8000000000 8999999999}}"
+    }
+}
+
+### 3.2 Subject
+
+#### 3.2.1 Create (Subject)
+# @name createSubject
+# name เป็น unique -> ชื่อที่ส่งมาต้องไม่ซ้ำกับของเดิมใน DB ไม่งั้นได้ 400 This attribute must be unique
+# ค่าชื่อมาจาก SUBJECT_NAME ใน .env เท่านั้น ก่อนยิงครั้งถัดไปให้แก้ค่านั้นใน .env (เช่นเติม 1, 2, 3 ...)
+# ทำไมไม่ใช้ {{$guid}} หรือ {{$timestamp}} ต่อท้ายชื่อ:
+#   - {{$timestamp}} แบบไม่ใส่ argument พังจริงใน humao.rest-client 0.25.1 (regex ได้ 1 group, โค้ดบังคับ 3)
+#   - log ของ server ยืนยันว่า client ตัดตัวแปรพวกนี้ทิ้งจาก body ทั้งหมด ทำให้เหลือชื่อเดิมแล้วชน 400
+#   - ยึดค่าจาก .env ตามดีไซน์ของไฟล์นี้แทน จะไม่ผูกกับพฤติกรรมของ extension
+POST {{baseUrl}}/api/subjects
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+    "data": {
+        "name": "{{subjectName}}"
+    }
+}
+
+#### 3.2.2 List All (Subject)
+GET {{baseUrl}}/api/subjects
+Authorization: Bearer {{userToken}}
+
+#### 3.2.3 List with ID (Subject)
+# 404 = ไม่มี subject id นี้ใน DB | {{subjectId}} ไม่ใช่ตัวเลข (controller กันไว้ให้ ไม่ใช่ 500)
+GET {{baseUrl}}/api/subjects/{{subjectId}}
+Authorization: Bearer {{userToken}}
+
+#### 3.2.4 Update (Subject)
+# name เป็น unique -> ชื่อที่ส่งไปต้องไม่ซ้ำกับ subject อื่นใน DB ไม่งั้น 400 This attribute must be unique
+# ค่ามาจาก SUBJECT_NEW_NAME ใน .env ต้องแก้ใหม่ก่อนยิงซ้ำ
+PUT {{baseUrl}}/api/subjects/{{subjectId}}
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+    "data": {
+        "name": "{{subjectNewName}}"
+    }
+}
+
+### 3.3 Teacher
+
+#### 3.3.1 Create (Teacher)
+# @name createTeacher
+# name เป็น unique -> ชื่อที่ส่งมาต้องไม่ซ้ำกับของเดิมใน DB ไม่งั้นได้ 400
+# ค่าชื่อมาจาก TEACHER_NAME ใน .env เท่านั้น ก่อนยิงครั้งถัดไปให้แก้ค่านั้นใน .env
+POST {{baseUrl}}/api/teachers
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+    "data": {
+        "name": "{{teacherName}}"
+    }
+}
+
+#### 3.3.2 List All (Teacher)
+GET {{baseUrl}}/api/teachers
+Authorization: Bearer {{userToken}}
+
+#### 3.3.3 List with ID (Teacher)
+# 404 = ไม่มี teacher id นี้ใน DB | {{teacherId}} ยังไม่ถูก resolve (controller กันไว้ให้ ไม่ใช่ 500)
+GET {{baseUrl}}/api/teachers/{{teacherId}}
+Authorization: Bearer {{userToken}}
+
+#### 3.3.4 Update (Teacher)
+# name เป็น unique -> ชื่อที่ส่งไปต้องไม่ซ้ำกับ teacher อื่นใน DB ไม่งั้น 400
+# ค่ามาจาก TEACHER_NEW_NAME ใน .env ต้องแก้ใหม่ก่อนยิงซ้ำ
+PUT {{baseUrl}}/api/teachers/{{teacherId}}
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+    "data": {
+        "name": "{{teacherNewName}}"
+    }
+}
+
+### 3.4 Mapping (เชื่อม Subject -> Teacher)
+# mapping: subjects (oneToMany -> subject) + teacher (manyToOne -> teacher)
+# ใช้ {{subjectId}} และ {{teacherId}} จาก .env (SUBJECT_ID / TEACHER_ID)
+# ต้อง grant permission api::mapping.mapping.create/find/findOne/update ให้ role Authenticated ก่อน
+# ถ้าได้ 403 แปลว่ายังไม่ได้ grant
+#
+# สำคัญ: Strapi ไม่คืนค่า relation ถ้าไม่ใส่ ?populate=* — ถ้าไม่ใส่จะเห็นแค่ id/createdAt
+# ต้องดูชื่อ subject/teacher ที่เชื่อมอยู่ ให้ใส่ ?populate=*
+
+#### 3.4.1 Create (Mapping)
+# @name createMapping
+POST {{baseUrl}}/api/mappings
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+    "data": {
+        "subjects": [{{subjectId}}],
+        "teacher": {{teacherId}}
+    }
+}
+
+#### 3.4.2 List All (Mapping)
+GET {{baseUrl}}/api/mappings?populate=*
+Authorization: Bearer {{userToken}}
+
+#### 3.4.3 List with ID (Mapping)
+# 404 = ไม่มี mapping id นี้ใน DB | {{mappingId}} ยังไม่ถูก resolve (controller กันไว้ให้ ไม่ใช่ 500)
+GET {{baseUrl}}/api/mappings/{{mappingId}}?populate=*
+Authorization: Bearer {{userToken}}
+
+#### 3.4.4 Update (Mapping)
+# เปลี่ยน subject ที่เชื่อมกับ teacher
+PUT {{baseUrl}}/api/mappings/{{mappingId}}
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+    "data": {
+        "subjects": [{{subjectId}}]
+    }
+}

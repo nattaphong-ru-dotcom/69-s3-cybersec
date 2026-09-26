@@ -36,6 +36,18 @@ services:
       - DATABASE_PORT=5432
       - DATABASE_USERNAME=${DATABASE_USER}
       - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+    volumes:
+      # โค้ด content-type อยู่ใน repo (bind mount) ไม่ใช่ใน image
+      # แก้ที่ strapi-src/api/<ชื่อ>/ แล้ว restart ได้เลย ไม่หายตอน recreate
+      #
+      # ข้อควรระวัง: bind mount ทับทั้งไดเรกทอรี ต้องมี content-types/ routes/ services/
+      # ครบทุกตัว ถ้าโฟลเดอร์ไหนไม่ครบ Strapi จะมองว่าไม่รู้จัก content-type นั้น
+      # แล้วลบตารางทิ้งตอน schema sync (ข้อมูลหายถาวร)
+      # วิธีเพิ่ม content-type ใหม่: copy ทั้งโฟลเดอร์ออกจาก image มาก่อน แล้วค่อยแก้
+      - ./strapi-src/api/student:/opt/app/src/api/student:ro
+      - ./strapi-src/api/subject:/opt/app/src/api/subject:ro
+      - ./strapi-src/api/teacher:/opt/app/src/api/teacher:ro
+      - ./strapi-src/api/mapping:/opt/app/src/api/mapping:ro
     depends_on:
       - db
     restart: unless-stopped
